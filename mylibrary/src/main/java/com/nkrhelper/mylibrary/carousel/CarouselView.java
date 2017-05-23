@@ -1,23 +1,31 @@
 package com.nkrhelper.mylibrary.carousel;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
+import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.PagerSnapHelper;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SnapHelper;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import com.nkrhelper.mylibrary.R;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -42,6 +50,8 @@ public class CarouselView extends FrameLayout {
     private long mAutoPlayInterval;
     private int mAutoPlayDirection;
 
+    private IndicatorView mIndicatorView;
+
     public CarouselView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
@@ -50,7 +60,7 @@ public class CarouselView extends FrameLayout {
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         layoutInflater.inflate(R.layout.view_carousel, this, true);
 
-        // setup properties
+        // properties
 
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarouselView);
 
@@ -70,6 +80,7 @@ public class CarouselView extends FrameLayout {
         // setup components
 
         setupCarouselRecyclerView(context);
+        setupIndicatorView(context);
     }
 
     @Override
@@ -118,6 +129,21 @@ public class CarouselView extends FrameLayout {
         mCarouselRecyclerView.setOnTouchListener(new CarouselTouchListener());
     }
 
+    private void setupIndicatorView(Context context) {
+        mIndicatorView = new IndicatorView(context);
+
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+
+        // TODO: setup indicator properties
+
+        layoutParams.gravity = Gravity.CENTER | Gravity.BOTTOM;
+
+        mIndicatorView.setOrientation(LinearLayout.HORIZONTAL);
+        addView(mIndicatorView, layoutParams);
+    }
+
     public void enableCarouseAutoPlay(boolean autoPlay) {
         mAutoPlayEnabled = autoPlay;
 
@@ -149,7 +175,6 @@ public class CarouselView extends FrameLayout {
         }
     }
 
-
     public void setCarouselOrientation(int orientation) {
         if(mCarouselOrientation != orientation) {
             mCarouselOrientation = orientation;
@@ -167,9 +192,7 @@ public class CarouselView extends FrameLayout {
             mCarouselRecyclerView.scrollToPosition(1);
         }
 
-        // TODO: build indicators
-
-
+        mIndicatorView.buildIndicators(adapter.getItemCount() - 2);
     }
 
     public void setCarouselAutoPlay(boolean autoPlay) {
@@ -216,7 +239,7 @@ public class CarouselView extends FrameLayout {
                 recyclerView.scrollToPosition(adapterPosition);
             }
 
-            // TODO: update indicator position
+            mIndicatorView.setIndicatorPosition(adapterPosition - 1);
         }
     }
 
@@ -266,5 +289,84 @@ public class CarouselView extends FrameLayout {
 
         public abstract void onBindCarouselViewHolder(VH holder, int index);
         public abstract int getActualItemCount();
+    }
+
+    // indicator
+
+    class IndicatorView extends LinearLayout {
+
+        private Drawable mNormalState;
+        private Drawable mSelectedState;
+        private int mIndicatorCount;
+        private int mCurrentPosition;
+
+        public IndicatorView(Context context) {
+            super(context);
+
+            initIndicatorView(context);
+        }
+
+        private void initIndicatorView(Context context) {
+            mIndicatorCount = 0;
+            mCurrentPosition = 0;
+
+            mNormalState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_normal);
+            mNormalState.setColorFilter(ContextCompat.getColor(context, android.R.color.white),
+                    PorterDuff.Mode.SRC_ATOP);
+            mSelectedState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_selected);
+            mSelectedState.setColorFilter(ContextCompat.getColor(context, android.R.color.white),
+                    PorterDuff.Mode.SRC_ATOP);
+        }
+
+        private int updateIndicatorState(int position, boolean selected) {
+            if(mIndicatorCount == 0) {
+                return -1;
+            }
+
+            position %= mIndicatorCount;
+            if(position >= 0  && position < getChildCount()) {
+                ((AppCompatImageView) getChildAt(position)).setImageDrawable(
+                        selected ? mSelectedState : mNormalState
+                );
+
+                return position;
+            }
+
+            return -1;
+        }
+
+        public void setIndicatorStateDrawables(Drawable normalState, Drawable selectedState) {
+            mNormalState = normalState;
+            mSelectedState = selectedState;
+
+            // TODO: rebuild indicators
+        }
+
+        public void setIndicatorPosition(int position) {
+            if(position != mCurrentPosition) {
+                updateIndicatorState(mCurrentPosition, false);
+                position = updateIndicatorState(position, true);
+                if(position >= 0) {
+                    mCurrentPosition = position;
+                }
+            }
+        }
+
+        public void buildIndicators(int count) {
+            removeAllViews();
+
+            mIndicatorCount = count;
+
+            for(int i = 0; i < mIndicatorCount; i++) {
+                AppCompatImageView indicatorImg = new AppCompatImageView(getContext());
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                        28,
+                        28);
+                indicatorImg.setImageDrawable(mNormalState);
+                addView(indicatorImg, layoutParams);
+            }
+
+            updateIndicatorState(mCurrentPosition, true);
+        }
     }
 }
