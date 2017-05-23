@@ -1,0 +1,49 @@
+<resources>
+    <string name="app_name">Carousel</string>
+
+    <string-array name="color_names">
+        <item>Red</item>
+        <item>Pink</item>
+        <item>Purple</item>
+        <item>DeepPurple</item>
+        <item>Indigo</item>
+        <item>Blue</item>
+        <item>LightBlue</item>
+        <item>Cyan</item>
+        <item>Teal</item>
+        <item>Green</item>
+        <item>LightGreen</item>
+        <item>Lime</item>
+        <item>Yellow</item>
+        <item>Amber</item>
+        <item>Orange</item>
+        <item>DeepOrange</item>
+        <item>Brown</item>
+        <item>Gray</item>
+        <item>BlueGray</item>
+        <item>Black</item>
+    </string-array>
+
+    <string-array name="color_values">
+        <item>#F44336</item>
+        <item>#E91E63</item>
+        <item>#9C27B0</item>
+        <item>#673AB7</item>
+        <item>#3F51B5</item>
+        <item>#2196F3</item>
+        <item>#03A9F4</item>
+        <item>#00BCD4</item>
+        <item>#009688</item>
+        <item>#4CAF50</item>
+        <item>#8BC34A</item>
+        <item>#CDDC39</item>
+        <item>#FFEB3B</item>
+        <item>#FFC107</item>
+        <item>#FF9800</item>
+        <item>#FF5722</item>
+        <item>#795548</item>
+        <item>#9E9E9E</item>
+        <item>#607D8B</item>
+        <item>#000000</item>
+    </string-array>
+</resources>

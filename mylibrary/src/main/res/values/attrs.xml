@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CarouselView">
+        <attr name="carousel_orientation" format="enum">
+            <enum name="carousel_horizontal" value="0" />
+            <enum name="carousel_vertical" value="1" />
+        </attr>
+        <attr name="carousel_auto_play" format="boolean"/>
+        <attr name="carousel_auto_play_interval" format="integer" />
+        <attr name="carousel_auto_play_direction" format="enum">
+            <enum name="carousel_auto_play_forward" value="0" />
+            <enum name="carousel_auto_play_backward" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>
