@@ -51,6 +51,13 @@ public class CarouselView extends FrameLayout {
     private int mAutoPlayDirection;
 
     private IndicatorView mIndicatorView;
+    private boolean mShowIndicatorView;
+    private int mIndicatorOrientation;
+    private int mIndicatorLayoutGravity;
+    private int mIndicatorLayoutMarginLeft;
+    private int mIndicatorLayoutMarginTop;
+    private int mIndicatorLayoutMarginRight;
+    private int mIndicatorLayoutMarginBottom;
 
     public CarouselView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -67,13 +74,23 @@ public class CarouselView extends FrameLayout {
         int orientation = typedArray.getInteger(R.styleable.CarouselView_carousel_orientation, HORIZONTAL);
         if(orientation == HORIZONTAL) {
             mCarouselOrientation = LinearLayoutManager.HORIZONTAL;
+            mIndicatorOrientation = LinearLayout.HORIZONTAL;
         } else if(orientation == VERTICAL) {
             mCarouselOrientation = LinearLayoutManager.VERTICAL;
+            mIndicatorOrientation = LinearLayout.VERTICAL;
         }
 
         mAutoPlayEnabled = typedArray.getBoolean(R.styleable.CarouselView_carousel_auto_play, true);
         mAutoPlayInterval = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_interval, 5000);
         mAutoPlayDirection = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_direction, FORWARD);
+
+        mShowIndicatorView = typedArray.getBoolean(R.styleable.CarouselView_show_indicators, true);
+        mIndicatorLayoutGravity = typedArray.getInteger(R.styleable.CarouselView_indicator_layout_gravity,
+                Gravity.BOTTOM | Gravity.CENTER);
+        mIndicatorLayoutMarginLeft = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_left, 0);
+        mIndicatorLayoutMarginTop = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_top, 0);
+        mIndicatorLayoutMarginRight = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_right, 0);
+        mIndicatorLayoutMarginBottom = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_bottom, 0);
 
         typedArray.recycle();
 
@@ -136,12 +153,15 @@ public class CarouselView extends FrameLayout {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
 
-        // TODO: setup indicator properties
+        // setup indicator properties
 
-        layoutParams.gravity = Gravity.CENTER | Gravity.BOTTOM;
-
-        mIndicatorView.setOrientation(LinearLayout.HORIZONTAL);
+        layoutParams.gravity = mIndicatorLayoutGravity;
+        layoutParams.setMargins(mIndicatorLayoutMarginLeft, mIndicatorLayoutMarginTop,
+                mIndicatorLayoutMarginRight, mIndicatorLayoutMarginBottom);
         addView(mIndicatorView, layoutParams);
+
+        mIndicatorView.setVisibility(mShowIndicatorView ? View.VISIBLE : View.GONE);
+        mIndicatorView.setOrientation(mIndicatorOrientation);
     }
 
     public void enableCarouseAutoPlay(boolean autoPlay) {
@@ -294,11 +314,11 @@ public class CarouselView extends FrameLayout {
     // indicator
 
     class IndicatorView extends LinearLayout {
-
         private Drawable mNormalState;
         private Drawable mSelectedState;
         private int mIndicatorCount;
         private int mCurrentPosition;
+        private int mIndicatorSize;
 
         public IndicatorView(Context context) {
             super(context);
@@ -309,6 +329,7 @@ public class CarouselView extends FrameLayout {
         private void initIndicatorView(Context context) {
             mIndicatorCount = 0;
             mCurrentPosition = 0;
+            mIndicatorSize = 20;
 
             mNormalState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_normal);
             mNormalState.setColorFilter(ContextCompat.getColor(context, android.R.color.white),
@@ -360,8 +381,8 @@ public class CarouselView extends FrameLayout {
             for(int i = 0; i < mIndicatorCount; i++) {
                 AppCompatImageView indicatorImg = new AppCompatImageView(getContext());
                 LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                        28,
-                        28);
+                        mIndicatorSize, mIndicatorSize);
+                layoutParams.setMargins(8, 8, 8, 8);
                 indicatorImg.setImageDrawable(mNormalState);
                 addView(indicatorImg, layoutParams);
             }
