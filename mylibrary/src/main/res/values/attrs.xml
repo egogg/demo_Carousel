@@ -33,5 +33,10 @@
         <attr name="indicator_layout_margin_top" format="dimension" />
         <attr name="indicator_layout_margin_right" format="dimension" />
         <attr name="indicator_layout_margin_bottom" format="dimension" />
+        <attr name="indicator_size" format="dimension" />
+        <attr name="indicator_margin_left" format="dimension" />
+        <attr name="indicator_margin_top" format="dimension" />
+        <attr name="indicator_margin_right" format="dimension" />
+        <attr name="indicator_margin_bottom" format="dimension" />
     </declare-styleable>
 </resources>

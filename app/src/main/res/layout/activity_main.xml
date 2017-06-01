@@ -21,7 +21,9 @@
         app:show_indicators="true"
         app:indicator_layout_gravity="bottom|center"
         app:carousel_orientation="carousel_horizontal"
-        app:indicator_layout_margin_bottom="8dp"
+        app:indicator_layout_margin_bottom="12dp"
+        app:indicator_size="8dp"
+        app:indicator_margin_left="2dp"
+        app:indicator_margin_right="2dp"
         />
-
 </android.support.constraint.ConstraintLayout>
