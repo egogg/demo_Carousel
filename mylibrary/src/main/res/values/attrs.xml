@@ -13,6 +13,10 @@
         </attr>
         
         <attr name="show_indicators" format="boolean" />
+        <attr name="indicator_normal_state" format="reference" />
+        <attr name="indicator_selected_state" format="reference" />
+        <attr name="indicator_normal_state_color" format="color" />
+        <attr name="indicator_selected_state_color" format="color" />
         <attr name="indicator_layout_gravity">
             <flag name="bottom" value="80" />
             <flag name="center" value="17" />

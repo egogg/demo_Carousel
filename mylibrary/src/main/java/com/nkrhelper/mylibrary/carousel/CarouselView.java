@@ -41,26 +41,8 @@ public class CarouselView extends FrameLayout {
     public static final int BACKWARD = 1;
 
     private RecyclerView mCarouselRecyclerView;
-    private int mCarouselOrientation;
-    private boolean mAutoPlayEnabled;
-    private Observable<Long> mAutoPlayObservable;
-    private Disposable mAutoPlayDisposable;
-    private long mAutoPlayInterval;
-    private int mAutoPlayDirection;
-
+    private AutoPlayController mAutoPlayController;
     private IndicatorView mIndicatorView;
-    private boolean mShowIndicatorView;
-    private int mIndicatorOrientation;
-    private int mIndicatorLayoutGravity;
-    private int mIndicatorLayoutMarginLeft;
-    private int mIndicatorLayoutMarginTop;
-    private int mIndicatorLayoutMarginRight;
-    private int mIndicatorLayoutMarginBottom;
-    private int mIndicatorSize;
-    private int mIndicatorMarginLeft;
-    private int mIndicatorMarginTop;
-    private int mIndicatorMarginRight;
-    private int mIndicatorMarginBottom;
 
     public CarouselView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -70,74 +52,48 @@ public class CarouselView extends FrameLayout {
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         layoutInflater.inflate(R.layout.view_carousel, this, true);
 
-        // properties
-
-        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarouselView);
-
-        int orientation = typedArray.getInteger(R.styleable.CarouselView_carousel_orientation, HORIZONTAL);
-        if(orientation == HORIZONTAL) {
-            mCarouselOrientation = LinearLayoutManager.HORIZONTAL;
-            mIndicatorOrientation = LinearLayout.HORIZONTAL;
-        } else if(orientation == VERTICAL) {
-            mCarouselOrientation = LinearLayoutManager.VERTICAL;
-            mIndicatorOrientation = LinearLayout.VERTICAL;
-        }
-
-        mAutoPlayEnabled = typedArray.getBoolean(R.styleable.CarouselView_carousel_auto_play, true);
-        mAutoPlayInterval = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_interval, 5000);
-        mAutoPlayDirection = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_direction, FORWARD);
-
-        mShowIndicatorView = typedArray.getBoolean(R.styleable.CarouselView_show_indicators, true);
-        mIndicatorLayoutGravity = typedArray.getInteger(R.styleable.CarouselView_indicator_layout_gravity,
-                Gravity.BOTTOM | Gravity.CENTER);
-        mIndicatorLayoutMarginLeft = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_left, 0);
-        mIndicatorLayoutMarginTop = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_top, 0);
-        mIndicatorLayoutMarginRight = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_right, 0);
-        mIndicatorLayoutMarginBottom = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_bottom, 0);
-        mIndicatorSize = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_size, 20);
-        mIndicatorMarginLeft = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_left, 0);
-        mIndicatorMarginTop = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_top, 0);
-        mIndicatorMarginRight = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_right, 0);
-        mIndicatorMarginBottom = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_bottom, 0);
-
-        typedArray.recycle();
-
         // setup components
 
-        setupCarouselRecyclerView(context);
-        setupIndicatorView(context);
+        setupCarouselRecyclerView(context, attrs);
+        setupAutoPlayController(context, attrs);
+        setupIndicatorView(context, attrs);
     }
 
     @Override
     protected void onWindowVisibilityChanged(int visibility) {
         super.onWindowVisibilityChanged(visibility);
         if(visibility == GONE || visibility == INVISIBLE) {
-            enableCarouseAutoPlay(false);
+            mAutoPlayController.pause();
         } else if(visibility == VISIBLE) {
-            enableCarouseAutoPlay(mAutoPlayEnabled);
+            mAutoPlayController.resume();
         }
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        enableCarouseAutoPlay(mAutoPlayEnabled);
+        mAutoPlayController.resume();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        enableCarouseAutoPlay(false);
+        mAutoPlayController.pause();
     }
 
-    private void setupCarouselRecyclerView(Context context) {
+    private void setupCarouselRecyclerView(Context context, @Nullable AttributeSet attrs) {
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarouselView);
+        int orientation = typedArray.getInteger(R.styleable.CarouselView_carousel_orientation, HORIZONTAL);
+        int carouselOrientation = (orientation == HORIZONTAL ? LinearLayoutManager.HORIZONTAL : LinearLayoutManager.VERTICAL);
+        typedArray.recycle();
+
         // get recycler view
 
         mCarouselRecyclerView = (RecyclerView) getChildAt(0);
 
         // set layout manager
 
-        LinearLayoutManager layoutManager = new LinearLayoutManager(context, mCarouselOrientation, false);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(context, carouselOrientation, false);
         mCarouselRecyclerView.setLayoutManager(layoutManager);
 
         // set snap helper
@@ -154,7 +110,33 @@ public class CarouselView extends FrameLayout {
         mCarouselRecyclerView.setOnTouchListener(new CarouselTouchListener());
     }
 
-    private void setupIndicatorView(Context context) {
+    private void setupAutoPlayController(Context context, @Nullable AttributeSet attrs) {
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarouselView);
+        boolean autoPlayEnabled = typedArray.getBoolean(R.styleable.CarouselView_carousel_auto_play, true);
+        int autoPlayInterval = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_interval, 5000);
+        int autoPlayDirection = typedArray.getInteger(R.styleable.CarouselView_carousel_auto_play_direction, FORWARD);
+        typedArray.recycle();
+
+        mAutoPlayController = new AutoPlayController(autoPlayInterval) {
+            @Override
+            void onPlayForward() {
+                navigateForward();
+            }
+
+            @Override
+            void onPlayBackward() {
+                navigateBackward();
+            }
+        };
+
+        mAutoPlayController.setPlayDirection(autoPlayDirection);
+
+        if(autoPlayEnabled) {
+            mAutoPlayController.start();
+        }
+    }
+
+    private void setupIndicatorView(Context context, @Nullable AttributeSet attrs) {
         mIndicatorView = new IndicatorView(context);
 
         FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
@@ -163,56 +145,47 @@ public class CarouselView extends FrameLayout {
 
         // setup indicator properties
 
-        layoutParams.gravity = mIndicatorLayoutGravity;
-        layoutParams.setMargins(mIndicatorLayoutMarginLeft, mIndicatorLayoutMarginTop,
-                mIndicatorLayoutMarginRight, mIndicatorLayoutMarginBottom);
+        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.CarouselView);
+        int orientation = typedArray.getInteger(R.styleable.CarouselView_carousel_orientation, HORIZONTAL);
+        int indicatorOrientation = (orientation == HORIZONTAL ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+        boolean showIndicatorView = typedArray.getBoolean(R.styleable.CarouselView_show_indicators, true);
+        int indicatorLayoutGravity = typedArray.getInteger(R.styleable.CarouselView_indicator_layout_gravity,
+                Gravity.BOTTOM | Gravity.CENTER);
+        int indicatorLayoutMarginLeft = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_left, 0);
+        int indicatorLayoutMarginTop = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_top, 0);
+        int indicatorLayoutMarginRight = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_right, 0);
+        int indicatorLayoutMarginBottom = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_layout_margin_bottom, 0);
+        int indicatorSize = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_size, 20);
+        int indicatorMarginLeft = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_left, 0);
+        int indicatorMarginTop = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_top, 0);
+        int indicatorMarginRight = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_right, 0);
+        int indicatorMarginBottom = typedArray.getDimensionPixelSize(R.styleable.CarouselView_indicator_margin_bottom, 0);
+        Drawable indicatorNormalState = typedArray.getDrawable(R.styleable.CarouselView_indicator_normal_state);
+        if(indicatorNormalState == null) {
+            indicatorNormalState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_normal);
+        }
+        Drawable indicatorSelectedState = typedArray.getDrawable(R.styleable.CarouselView_indicator_selected_state);
+        if(indicatorSelectedState == null) {
+            indicatorSelectedState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_selected);
+        }
+        int normalStateColor = typedArray.getColor(R.styleable.CarouselView_indicator_normal_state_color,
+                ContextCompat.getColor(context, android.R.color.white));
+        int selectedStateColor = typedArray.getColor(R.styleable.CarouselView_indicator_selected_state_color,
+                ContextCompat.getColor(context, android.R.color.white));
+        typedArray.recycle();
+
+        layoutParams.gravity = indicatorLayoutGravity;
+        layoutParams.setMargins(indicatorLayoutMarginLeft, indicatorLayoutMarginTop,
+                indicatorLayoutMarginRight, indicatorLayoutMarginBottom);
         addView(mIndicatorView, layoutParams);
 
-        mIndicatorView.setVisibility(mShowIndicatorView ? View.VISIBLE : View.GONE);
-        mIndicatorView.setOrientation(mIndicatorOrientation);
-        mIndicatorView.setIndicatorSize(mIndicatorSize);
-        mIndicatorView.setIndicatorMargins(mIndicatorMarginLeft, mIndicatorMarginTop, mIndicatorMarginRight, mIndicatorMarginBottom);
-    }
-
-    public void enableCarouseAutoPlay(boolean autoPlay) {
-        mAutoPlayEnabled = autoPlay;
-
-        if(autoPlay) {
-            if(mAutoPlayObservable == null) {
-                mAutoPlayObservable = Observable.interval(mAutoPlayInterval, TimeUnit.MILLISECONDS);
-            }
-
-            if(mAutoPlayDisposable == null || mAutoPlayDisposable.isDisposed()){
-                // start a new subscription
-
-                mAutoPlayDisposable = mAutoPlayObservable
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Consumer<Long>() {
-                            @Override
-                            public void accept(@io.reactivex.annotations.NonNull Long aLong) throws Exception {
-                                if(mAutoPlayDirection == FORWARD) {
-                                    navigateNext();
-                                } else {
-                                    navigatePrevious();
-                                }
-                            }
-                        });
-            }
-        } else {
-            if(mAutoPlayDisposable != null && !mAutoPlayDisposable.isDisposed()) {
-                mAutoPlayDisposable.dispose();
-            }
-        }
-    }
-
-    public void setCarouselOrientation(int orientation) {
-        if(mCarouselOrientation != orientation) {
-            mCarouselOrientation = orientation;
-        }
-    }
-
-    public void setCarouselAutoPlayDirection(int direction) {
-        mAutoPlayDirection = direction;
+        mIndicatorView.setVisibility(showIndicatorView ? View.VISIBLE : View.GONE);
+        mIndicatorView.setOrientation(indicatorOrientation);
+        mIndicatorView.setIndicatorSize(indicatorSize);
+        mIndicatorView.setIndicatorMargins(indicatorMarginLeft, indicatorMarginTop,
+                indicatorMarginRight, indicatorMarginBottom);
+        mIndicatorView.setIndicatorStateDrawables(indicatorNormalState, indicatorSelectedState);
+        mIndicatorView.setIndicatorStateColors(normalStateColor, selectedStateColor);
     }
 
     public void setCarouselAdapter(RecyclerView.Adapter adapter) {
@@ -225,17 +198,12 @@ public class CarouselView extends FrameLayout {
         mIndicatorView.buildIndicators(adapter.getItemCount() - 2);
     }
 
-    public void setCarouselAutoPlay(boolean autoPlay) {
-        enableCarouseAutoPlay(autoPlay);
-    }
-
-
-    public void navigateNext() {
+    public void navigateForward() {
         LinearLayoutManager layoutManager = (LinearLayoutManager) mCarouselRecyclerView.getLayoutManager();
         mCarouselRecyclerView.smoothScrollToPosition(layoutManager.findFirstVisibleItemPosition() + 1);
     }
 
-    public void navigatePrevious() {
+    public void navigateBackward() {
         LinearLayoutManager layoutManager = (LinearLayoutManager) mCarouselRecyclerView.getLayoutManager();
         mCarouselRecyclerView.smoothScrollToPosition(layoutManager.findFirstVisibleItemPosition() - 1);
     }
@@ -281,16 +249,78 @@ public class CarouselView extends FrameLayout {
         public boolean onTouch(View v, MotionEvent event) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN : {
-                    enableCarouseAutoPlay(false);
+                    mAutoPlayController.pause();
                     break;
                 }
                 case MotionEvent.ACTION_UP : {
-                    enableCarouseAutoPlay(true);
+                    mAutoPlayController.resume();
                     break;
                 }
             }
 
             return false;
+        }
+    }
+
+    // carousel auto play
+
+    abstract class AutoPlayController {
+        private boolean mEnabled;
+        private Observable<Long> mObservable;
+        private Disposable mDisposable;
+        private long mInterval;
+        private int mPlayDirection;
+
+        AutoPlayController(int interval) {
+            mInterval = interval;
+        }
+
+        abstract void onPlayForward();
+        abstract void onPlayBackward();
+
+        void start() {
+            mEnabled = true;
+            resume();
+        }
+
+        void resume() {
+            if(mEnabled) {
+                if(mObservable == null) {
+                    mObservable = Observable.interval(mInterval, TimeUnit.MILLISECONDS);
+                }
+
+                if(mDisposable == null || mDisposable.isDisposed()){
+                    // start a new subscription
+
+                    mDisposable = mObservable
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(new Consumer<Long>() {
+                                @Override
+                                public void accept(@io.reactivex.annotations.NonNull Long aLong) throws Exception {
+                                    if(mPlayDirection == FORWARD) {
+                                        onPlayForward();
+                                    } else if(mPlayDirection == BACKWARD) {
+                                        onPlayBackward();
+                                    }
+                                }
+                            });
+                }
+            }
+        }
+
+        void pause() {
+            if(mDisposable != null && !mDisposable.isDisposed()) {
+                mDisposable.dispose();
+            }
+        }
+
+        void stop() {
+            mEnabled = false;
+            pause();
+        }
+
+        void setPlayDirection(int direction) {
+            mPlayDirection = direction;
         }
     }
 
@@ -337,19 +367,8 @@ public class CarouselView extends FrameLayout {
         public IndicatorView(Context context) {
             super(context);
 
-            initIndicatorView(context);
-        }
-
-        private void initIndicatorView(Context context) {
             mIndicatorCount = 0;
             mCurrentPosition = 0;
-
-            mNormalState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_normal);
-            mNormalState.setColorFilter(ContextCompat.getColor(context, android.R.color.white),
-                    PorterDuff.Mode.SRC_ATOP);
-            mSelectedState = ContextCompat.getDrawable(context, R.drawable.ic_carousel_indicator_selected);
-            mSelectedState.setColorFilter(ContextCompat.getColor(context, android.R.color.white),
-                    PorterDuff.Mode.SRC_ATOP);
         }
 
         private int updateIndicatorState(int position, boolean selected) {
@@ -372,6 +391,11 @@ public class CarouselView extends FrameLayout {
         public void setIndicatorStateDrawables(Drawable normalState, Drawable selectedState) {
             mNormalState = normalState;
             mSelectedState = selectedState;
+        }
+
+        public void setIndicatorStateColors(int normalColor, int selectedColor) {
+            mNormalState.setColorFilter(normalColor, PorterDuff.Mode.SRC_ATOP);
+            mSelectedState.setColorFilter(selectedColor, PorterDuff.Mode.SRC_ATOP);
         }
 
         public void setIndicatorSize(int size) {
